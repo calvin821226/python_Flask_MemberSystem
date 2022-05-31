@@ -1,4 +1,3 @@
-import collections
 from flask import*
 import flask
 import pymongo
@@ -26,7 +25,12 @@ def index():
     return render_template("index.html")
 @app.route("/member")
 def member():
-    return render_template("member.html")
+    if "nickname" in session:
+        return render_template("member.html",nickname = session["nickname"])
+    else:
+        return redirect("/")
+
+
 #/error?msg=錯誤訊息
 @app.route("/error")
 def error():
@@ -57,8 +61,32 @@ def signup():
         )
         return redirect("/")
 
+@app.route("/signin",methods=["POST"])
+def signin():
+    #從前端取得使用者輸入
+    email = request.form["email"]
+    password = request.form["password"]
+    #和DB做互動，比對帳密
+    collection = db.users
+    result = collection.find_one(
+        {"$and":[
+            {"email":email},
+            {"password":password}
+        ]}
+    )
+    print(result)
 
+    if result != None:
+        session["nickname"] = result["nickname"]
+        return redirect("/member")
+    #找不到對應資料，登入失敗，導向到錯誤頁面
+    return redirect("/error?msg=帳密錯誤")
 
+@app.route("/signout")
+def signout():
+    #移除Session中的會員資訊
+    del session["nickname"]
+    return redirect("/")
   
 app.run(port = 8080)
 
